@@ -21,9 +21,30 @@ export async function analyzeWithPersona(
   // Convert URL path to absolute filesystem path
   // screenshotUrl = /screenshots/<jobId>/desktop.png
   const relativePart = screenshotUrl.replace('/screenshots/', '');
-  const absolutePath = path.join(SCREENSHOTS_BASE_DIR, relativePart);
+  
+  // Swap raw screenshot path to SoM screenshot path
+  const basePath = path.dirname(relativePart);
+  const fileName = path.basename(relativePart);
+  const somPart = path.join(basePath, `som-${fileName}`);
+  const absolutePath = path.join(SCREENSHOTS_BASE_DIR, somPart);
 
-  const prompt = persona.promptTemplate();
+  const somInstruction = `
+The screenshot you are analyzing contains numbered labels (blue badges with white numbers).
+Each number corresponds to a specific UI element on the page.
+
+When you identify a UX issue or observation, you MUST reference the element by its number.
+
+Example of correct format:
+"Element [6] — the sign-up button — has insufficient tap target size."
+
+Example of incorrect format:
+"The button near the form is too small."
+
+Never describe an element's position without referencing its number.
+If you cannot identify which numbered element you are referring to, do not make the claim.
+`;
+
+  const prompt = persona.promptTemplate() + '\n\n' + somInstruction;
 
   let rawResponse: string;
   try {
