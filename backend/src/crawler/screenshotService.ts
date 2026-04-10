@@ -1,6 +1,9 @@
+/// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
 import path from 'path';
 import fs from 'fs';
 import { chromium, Page } from 'playwright';
+import sharp from 'sharp';
 import { ScreenshotSet } from '../types';
 
 const SCREENSHOTS_BASE_DIR = path.join(__dirname, '..', '..', 'screenshots');
@@ -72,6 +75,42 @@ async function extractDOMForViewport(page: Page, viewport: 'desktop' | 'tablet' 
   fs.writeFileSync(path.join(jobDir, `dom-${viewport}.json`), JSON.stringify(domData, null, 2));
 }
 
+async function generateLabeledScreenshot(viewport: 'desktop' | 'tablet' | 'mobile', viewportWidth: number, viewportHeight: number, jobDir: string): Promise<void> {
+  const domPath = path.join(jobDir, `dom-${viewport}.json`);
+  const screenshotPath = path.join(jobDir, `${viewport}.png`);
+  const outputPath = path.join(jobDir, `som-${viewport}.png`);
+
+  if (!fs.existsSync(domPath) || !fs.existsSync(screenshotPath)) return;
+
+  const domData: ViewportDOM = JSON.parse(fs.readFileSync(domPath, 'utf-8'));
+  
+  if (!domData || !domData.elements || domData.elements.length === 0) return;
+
+  const validElements = domData.elements.filter(el => el.width > 0 && el.height > 0);
+
+  if (validElements.length === 0) return;
+
+  const image = sharp(screenshotPath);
+  const metadata = await image.metadata();
+  const imgWidth = metadata.width || viewportWidth;
+  const imgHeight = metadata.height || viewportHeight;
+
+  const labels = validElements.map(el => `
+  <rect x="${el.x}" y="${el.y}" width="22" height="20" rx="3" fill="#1D4ED8"/>
+  <text x="${el.x + 3}" y="${el.y + 14}" font-size="11" font-family="monospace" fill="white">${el.id}</text>
+  `).join('');
+
+  const svg = `<svg width="${imgWidth}" height="${imgHeight}" xmlns="http://www.w3.org/2000/svg">
+  ${labels}
+  </svg>`;
+
+  await image
+    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+    .toFile(outputPath);
+
+  console.log(`  → Labeled screenshot (SoM) saved for ${viewport}`);
+}
+
 /**
  * Captures 3 screenshots of a URL:
  * - Desktop (1280x720)
@@ -103,6 +142,7 @@ export async function captureScreenshots(url: string, jobId: string): Promise<Sc
     await desktopPage.screenshot({ path: desktopPath, type: 'png' });
     await desktopContext.close();
     console.log(`  → Desktop screenshot saved`);
+    await generateLabeledScreenshot('desktop', 1280, 720, jobDir);
 
     // ─── Tablet ────────────────────────────────────────
     const tabletContext = await browser.newContext({
@@ -116,6 +156,7 @@ export async function captureScreenshots(url: string, jobId: string): Promise<Sc
     await tabletPage.screenshot({ path: tabletPath, type: 'png' });
     await tabletContext.close();
     console.log(`  → Tablet screenshot saved`);
+    await generateLabeledScreenshot('tablet', 768, 1024, jobDir);
 
     // ─── Mobile ───────────────────────────────────────────
     const mobileContext = await browser.newContext({
@@ -129,6 +170,7 @@ export async function captureScreenshots(url: string, jobId: string): Promise<Sc
     await mobilePage.screenshot({ path: mobilePath, type: 'png' });
     await mobileContext.close();
     console.log(`  → Mobile screenshot saved`);
+    await generateLabeledScreenshot('mobile', 375, 812, jobDir);
 
     return {
       desktop: `/screenshots/${jobId}/desktop.png`,
