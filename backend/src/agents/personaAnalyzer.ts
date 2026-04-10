@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import { PersonaConfig } from './personas';
 import { PersonaAnalysis } from '../types';
 import { analyzeScreenshotWithGemini } from '../ai/visionService';
@@ -22,11 +23,22 @@ export async function analyzeWithPersona(
   // screenshotUrl = /screenshots/<jobId>/desktop.png
   const relativePart = screenshotUrl.replace('/screenshots/', '');
   
-  // Swap raw screenshot path to SoM screenshot path
   const basePath = path.dirname(relativePart);
   const fileName = path.basename(relativePart);
+  const viewport = fileName.replace('.png', '');
+  
+  // Swap raw screenshot path to SoM screenshot path
   const somPart = path.join(basePath, `som-${fileName}`);
   const absolutePath = path.join(SCREENSHOTS_BASE_DIR, somPart);
+
+  // Read UI structure (for Step 04)
+  const uiStructurePath = path.join(SCREENSHOTS_BASE_DIR, basePath, `ui-structure-${viewport}.json`);
+  let uiStructureJson = '';
+  try {
+    uiStructureJson = fs.readFileSync(uiStructurePath, 'utf8');
+  } catch (err) {
+    console.warn(`[Persona: ${persona.name}] Could not read UI structure file:`, uiStructurePath);
+  }
 
   const somInstruction = `
 The screenshot you are analyzing contains numbered labels (blue badges with white numbers).
@@ -42,6 +54,13 @@ Example of incorrect format:
 
 Never describe an element's position without referencing its number.
 If you cannot identify which numbered element you are referring to, do not make the claim.
+
+Here is the structured data for every labeled element on this page:
+<ui_structure>
+${uiStructureJson}
+</ui_structure>
+
+Use this data to verify your claims. If you say a button is too small, reference its actual height from the data.
 `;
 
   const prompt = persona.promptTemplate() + '\n\n' + somInstruction;

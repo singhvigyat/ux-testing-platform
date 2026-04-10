@@ -16,6 +16,12 @@ type DOMElement = {
   y: number;
   width: number;
   height: number;
+  fontSize: number;
+  color: string;
+  backgroundColor: string;
+  role: string;
+  ariaLabel: string;
+  isClickable: boolean;
 };
 
 type ViewportDOM = {
@@ -50,6 +56,13 @@ async function extractDOMForViewport(page: Page, viewport: 'desktop' | 'tablet' 
       let text = (el as HTMLElement).innerText || (el as HTMLInputElement).value || (el as HTMLImageElement).alt || '';
       text = text.trim().substring(0, 80);
 
+      const fontSize = parseFloat(style.fontSize) || 0;
+      const color = style.color || '';
+      const backgroundColor = style.backgroundColor || '';
+      const role = el.getAttribute('role') || '';
+      const ariaLabel = el.getAttribute('aria-label') || '';
+      const isClickable = tagInfo === 'a' || tagInfo === 'button' || style.cursor === 'pointer';
+
       results.push({
         id: idCounter++,
         tag: tagInfo,
@@ -58,6 +71,12 @@ async function extractDOMForViewport(page: Page, viewport: 'desktop' | 'tablet' 
         y: Math.round(rect.y),
         width: Math.round(rect.width),
         height: Math.round(rect.height),
+        fontSize: Math.round(fontSize),
+        color,
+        backgroundColor,
+        role,
+        ariaLabel,
+        isClickable,
       });
     }
 
@@ -73,6 +92,15 @@ async function extractDOMForViewport(page: Page, viewport: 'desktop' | 'tablet' 
   };
 
   fs.writeFileSync(path.join(jobDir, `dom-${viewport}.json`), JSON.stringify(domData, null, 2));
+
+  const uiStructureData = {
+    viewport,
+    pageWidth: viewportWidth,
+    elementCount: elements.length,
+    elements
+  };
+
+  fs.writeFileSync(path.join(jobDir, `ui-structure-${viewport}.json`), JSON.stringify(uiStructureData, null, 2));
 }
 
 async function generateLabeledScreenshot(viewport: 'desktop' | 'tablet' | 'mobile', viewportWidth: number, viewportHeight: number, jobDir: string): Promise<void> {
