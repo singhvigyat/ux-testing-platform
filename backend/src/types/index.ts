@@ -24,7 +24,7 @@ export interface UXConflict {
 export interface ScreenshotSet {
   desktop: string;
   mobile: string;
-  fullPage: string;
+  tablet: string;
 }
 
 export type JobStatus = 'pending' | 'processing' | 'complete' | 'error';

@@ -46,7 +46,7 @@ export async function startAnalysis(req: Request, res: Response): Promise<void> 
     jobId: generatedJobId,
     url: normalizedUrl,
     status: 'pending',
-    screenshots: { desktop: '', mobile: '', fullPage: '' },
+    screenshots: { desktop: '', mobile: '', tablet: '' },
     personaInsights: [],
     conflicts: [],
     summary: '',

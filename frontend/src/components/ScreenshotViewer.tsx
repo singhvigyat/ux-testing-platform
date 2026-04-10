@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import type { ScreenshotSet } from '../types';
-import { Monitor, Smartphone, FileText } from 'lucide-react';
+import { Monitor, Smartphone, Tablet } from 'lucide-react';
 
 interface Props {
   screenshots: ScreenshotSet;
   url: string;
 }
 
-type Tab = 'desktop' | 'mobile' | 'fullPage';
+type Tab = 'desktop' | 'mobile' | 'tablet';
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'desktop', label: 'Desktop', icon: <Monitor size={14} /> },
   { id: 'mobile', label: 'Mobile', icon: <Smartphone size={14} /> },
-  { id: 'fullPage', label: 'Full Page', icon: <FileText size={14} /> },
+  { id: 'tablet', label: 'Tablet', icon: <Tablet size={14} /> },
 ];
 
 export default function ScreenshotViewer({ screenshots, url }: Props) {
@@ -74,8 +74,8 @@ export default function ScreenshotViewer({ screenshots, url }: Props) {
           position: 'relative',
           background: '#0a0a1a',
           cursor: 'zoom-in',
-          maxHeight: activeTab === 'fullPage' ? '500px' : 'auto',
-          overflowY: activeTab === 'fullPage' ? 'auto' : 'hidden',
+          maxHeight: activeTab === 'tablet' ? '500px' : 'auto',
+          overflowY: activeTab === 'tablet' ? 'auto' : 'hidden',
         }}
         onClick={() => setLightbox(true)}
       >
@@ -83,7 +83,7 @@ export default function ScreenshotViewer({ screenshots, url }: Props) {
           src={currentSrc}
           alt={`${activeTab} screenshot of ${url}`}
           style={{
-            width: activeTab === 'mobile' ? '390px' : '100%',
+            width: activeTab === 'mobile' ? '375px' : '100%',
             height: activeTab === 'desktop' ? '400px' : 'auto',
             objectFit: activeTab === 'desktop' ? 'cover' : undefined,
             objectPosition: 'top',
