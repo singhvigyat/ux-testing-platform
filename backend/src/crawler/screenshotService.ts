@@ -22,6 +22,7 @@ type DOMElement = {
   role: string;
   ariaLabel: string;
   isClickable: boolean;
+  section: string;
 };
 
 type ViewportDOM = {
@@ -39,6 +40,7 @@ async function extractDOMForViewport(page: Page, viewport: 'desktop' | 'tablet' 
     let idCounter = 1;
 
     const allElements = document.querySelectorAll('*');
+    let sectionCounter = 1;
 
     for (const el of allElements) {
       const tagInfo = el.tagName.toLowerCase();
@@ -63,6 +65,30 @@ async function extractDOMForViewport(page: Page, viewport: 'desktop' | 'tablet' 
       const ariaLabel = el.getAttribute('aria-label') || '';
       const isClickable = tagInfo === 'a' || tagInfo === 'button' || style.cursor === 'pointer';
 
+      let section = '';
+      let curr: Element | null = el;
+      while (curr) {
+        const curTag = curr.tagName.toLowerCase();
+        if (curTag === 'header' || curTag === 'nav') { section = 'navigation'; break; }
+        if (curTag === 'footer') { section = 'footer'; break; }
+        if (curTag === 'form') { section = 'form'; break; }
+        if (curTag === 'main') { section = 'main'; break; }
+        if (curTag === 'section' || curTag === 'article') {
+          section = curr.id || curr.getAttribute('aria-label') || `section_${sectionCounter++}`;
+          break;
+        }
+        curr = curr.parentElement;
+      }
+
+      if (!section) {
+        const percentage = rect.y / window.innerHeight;
+        if (percentage <= 0.15) section = 'hero';
+        else if (percentage <= 0.40) section = 'features';
+        else if (percentage <= 0.65) section = 'content';
+        else if (percentage <= 0.85) section = 'cta_or_pricing';
+        else section = 'footer';
+      }
+
       results.push({
         id: idCounter++,
         tag: tagInfo,
@@ -77,6 +103,7 @@ async function extractDOMForViewport(page: Page, viewport: 'desktop' | 'tablet' 
         role,
         ariaLabel,
         isClickable,
+        section,
       });
     }
 
@@ -93,8 +120,17 @@ async function extractDOMForViewport(page: Page, viewport: 'desktop' | 'tablet' 
 
   fs.writeFileSync(path.join(jobDir, `dom-${viewport}.json`), JSON.stringify(domData, null, 2));
 
+  const sectionsObj: Record<string, number[]> = {};
+  for (const el of elements) {
+    if (!sectionsObj[el.section]) {
+      sectionsObj[el.section] = [];
+    }
+    sectionsObj[el.section].push(el.id);
+  }
+
   const uiStructureData = {
     viewport,
+    sections: sectionsObj,
     pageWidth: viewportWidth,
     elementCount: elements.length,
     elements

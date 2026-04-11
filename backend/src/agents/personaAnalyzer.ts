@@ -31,13 +31,30 @@ export async function analyzeWithPersona(
   const somPart = path.join(basePath, `som-${fileName}`);
   const absolutePath = path.join(SCREENSHOTS_BASE_DIR, somPart);
 
-  // Read UI structure (for Step 04)
+  // Read UI structure (for Step 04 and Step 05)
   const uiStructurePath = path.join(SCREENSHOTS_BASE_DIR, basePath, `ui-structure-${viewport}.json`);
   let uiStructureJson = '';
+  let uiStructureData: any = null;
   try {
     uiStructureJson = fs.readFileSync(uiStructurePath, 'utf8');
+    uiStructureData = JSON.parse(uiStructureJson);
   } catch (err) {
     console.warn(`[Persona: ${persona.name}] Could not read UI structure file:`, uiStructurePath);
+  }
+
+  let sectionsInstruction = '';
+  if (uiStructureData && uiStructureData.sections) {
+    const sectionsList = Object.entries(uiStructureData.sections)
+      .map(([sec, ids]) => `- ${sec}: elements [${(ids as number[]).join(', ')}]`)
+      .join('\n');
+
+    sectionsInstruction = `
+The UI is divided into the following sections:
+${sectionsList}
+
+When evaluating an element, consider its section context.
+A small font in a footer note is less severe than a small font in the primary call-to-action.
+`;
   }
 
   const somInstruction = `
@@ -54,7 +71,7 @@ Example of incorrect format:
 
 Never describe an element's position without referencing its number.
 If you cannot identify which numbered element you are referring to, do not make the claim.
-
+${sectionsInstruction}
 Here is the structured data for every labeled element on this page:
 <ui_structure>
 ${uiStructureJson}
