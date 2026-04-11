@@ -93,8 +93,7 @@ function parseGeminiResponse(
 ): Omit<PersonaAnalysis, 'persona' | 'personaId'> {
   // Strip markdown code fences if present
   let cleaned = raw.trim();
-  cleaned = cleaned.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
-  cleaned = cleaned.replace(/^```\s*/i, '').replace(/\s*```$/, '');
+  cleaned = cleaned.replace(/^```(json)?\s*/i, '').replace(/\s*```$/, '');
 
   // Find the first { and last } to extract just the JSON object
   const firstBrace = cleaned.indexOf('{');
@@ -106,16 +105,23 @@ function parseGeminiResponse(
   try {
     const parsed = JSON.parse(cleaned);
 
+    // Some models return keys in lowercase, try to find the correct property
+    const getProp = (key: string) => {
+      const lowerKey = key.toLowerCase();
+      const actualKey = Object.keys(parsed).find(k => k.toLowerCase() === lowerKey);
+      return actualKey ? parsed[actualKey] : undefined;
+    };
+
     return {
-      usabilityIssues: ensureStringArray(parsed.usabilityIssues),
-      accessibilityIssues: ensureStringArray(parsed.accessibilityIssues),
-      confusionPoints: ensureStringArray(parsed.confusionPoints),
-      positiveObservations: ensureStringArray(parsed.positiveObservations),
-      severityScore: ensureNumber(parsed.severityScore, 5),
+      usabilityIssues: ensureStringArray(getProp('usabilityIssues')),
+      accessibilityIssues: ensureStringArray(getProp('accessibilityIssues')),
+      confusionPoints: ensureStringArray(getProp('confusionPoints')),
+      positiveObservations: ensureStringArray(getProp('positiveObservations')),
+      severityScore: ensureNumber(getProp('severityScore'), 5),
     };
   } catch (parseError) {
     console.warn(`[Persona: ${persona.name}] Failed to parse JSON response. Using fallback.`);
-    console.warn('Raw response:', raw.slice(0, 200));
+    console.warn('Raw response:', raw.slice(0, 500));
 
     // Return a fallback analysis rather than crashing
     return {
@@ -130,7 +136,19 @@ function parseGeminiResponse(
 
 function ensureStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
-    return value.filter((v) => typeof v === 'string').map((v) => String(v));
+    return value
+      .map((v) => {
+        if (typeof v === 'string') return v;
+        if (typeof v === 'object' && v !== null) {
+          const vals = Object.values(v);
+          return vals.length > 0 ? String(vals[0]) : JSON.stringify(v);
+        }
+        return String(v);
+      })
+      .filter((v) => v.trim() !== '');
+  }
+  if (typeof value === 'string') {
+    return [value];
   }
   return [];
 }

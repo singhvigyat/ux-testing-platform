@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ScreenshotSet } from '../types';
-import { Monitor, Smartphone, Tablet } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, Tags } from 'lucide-react';
 
 interface Props {
   screenshots: ScreenshotSet;
@@ -18,8 +18,19 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 export default function ScreenshotViewer({ screenshots, url }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('desktop');
   const [lightbox, setLightbox] = useState(false);
+  const [showLabels, setShowLabels] = useState(true);
 
-  const currentSrc = screenshots[activeTab];
+  const getSrc = () => {
+    let src = screenshots[activeTab];
+    if (showLabels) {
+      if (activeTab === 'desktop') src = src.replace('desktop.png', 'som-desktop.png');
+      if (activeTab === 'mobile') src = src.replace('mobile.png', 'som-mobile.png');
+      if (activeTab === 'tablet') src = src.replace('tablet.png', 'som-tablet.png');
+    }
+    return src;
+  };
+
+  const currentSrc = getSrc();
 
   return (
     <div className="glass-card animate-fade-in-up" style={{ overflow: 'hidden' }}>
@@ -48,24 +59,52 @@ export default function ScreenshotViewer({ screenshots, url }: Props) {
           ))}
         </div>
 
-        <a
-          href={currentSrc}
-          target="_blank"
-          rel="noreferrer"
-          style={{
-            fontSize: '12px',
-            color: 'var(--color-text-secondary)',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            transition: 'color 0.2s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-accent-1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
-        >
-          ↗ Open full size
-        </a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button
+            onClick={() => setShowLabels(!showLabels)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              color: showLabels ? 'var(--color-accent-1)' : 'var(--color-text-secondary)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '4px 8px',
+              borderRadius: '6px',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              if (!showLabels) e.currentTarget.style.color = 'var(--color-text)';
+            }}
+            onMouseLeave={(e) => {
+              if (!showLabels) e.currentTarget.style.color = 'var(--color-text-secondary)';
+            }}
+          >
+            <Tags size={14} />
+            {showLabels ? 'Hide AI Labels' : 'Show AI Labels'}
+          </button>
+
+          <a
+            href={currentSrc}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              fontSize: '12px',
+              color: 'var(--color-text-secondary)',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              transition: 'color 0.2s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-accent-1)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
+          >
+            ↗ Open full size
+          </a>
+        </div>
       </div>
 
       {/* Screenshot Display */}
