@@ -126,9 +126,13 @@ async function runAnalysis(
       const analysis = await analyzeWithPersona(persona, screenshots.desktop);
       personaInsights.push(analysis);
       updateJob({ personaInsights: [...personaInsights] });
-      console.log(`[Job ${jobId}] ✅ ${persona.name} analysis complete (score: ${analysis.severityScore}/10)`);
+      
+      console.log(`\n[Job ${jobId}] ✅ ${persona.name} analysis complete (score: ${analysis.overallScore}/10)`);
+      console.dir(analysis, { depth: null, colors: true });
       // Note: inter-call spacing is handled by visionService (MIN_CALL_DELAY_MS)
     }
+
+
 
     // Step 3: Aggregate results and detect conflicts
     console.log(`[Job ${jobId}] 📊 Building final report...`);

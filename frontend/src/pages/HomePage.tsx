@@ -11,11 +11,9 @@ const EXAMPLE_URLS = [
 ];
 
 const AVAILABLE_PERSONAS = [
-  { id: 'elderly-user', avatar: '👵', name: 'Margaret', role: 'Elderly User', color: '#f59e0b' },
-  { id: 'developer-user', avatar: '👨‍💻', name: 'Alex', role: 'Developer', color: '#6366f1' },
-  { id: 'first-time-visitor', avatar: '🧑', name: 'Jordan', role: 'First-Timer', color: '#10b981' },
-  { id: 'visually-impaired', avatar: '🦯', name: 'Sam', role: 'Low Vision', color: '#a855f7' },
+  { id: 'elderly_non_technical', avatar: '👵', name: 'Maya', role: 'Elderly User', color: '#f59e0b' },
 ];
+
 
 const FEATURES = [
   {
@@ -54,7 +52,7 @@ export default function HomePage() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedPersonas, setSelectedPersonas] = useState<string[]>(['first-time-visitor']);
+  const [selectedPersonas, setSelectedPersonas] = useState<string[]>(['elderly_non_technical']);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {

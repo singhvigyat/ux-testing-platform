@@ -1,18 +1,12 @@
 import type { UXReport } from '../types';
 
 const PERSONAS_META: Record<string, { avatar: string; color: string }> = {
-  'elderly-user': { avatar: '👵', color: '#f59e0b' },
-  'developer-user': { avatar: '👨‍💻', color: '#6366f1' },
-  'first-time-visitor': { avatar: '🧑', color: '#10b981' },
-  'visually-impaired': { avatar: '🦯', color: '#a855f7' },
+  'elderly_non_technical': { avatar: '👵', color: '#f59e0b' },
 };
 
 const ANALYSIS_STEPS = [
   { id: 'screenshot', label: 'Capturing screenshots with Playwright' },
-  { id: 'elderly-user', label: 'Analyzing as Margaret (Elderly User)' },
-  { id: 'developer-user', label: 'Analyzing as Alex (Developer)' },
-  { id: 'first-time-visitor', label: 'Analyzing as Jordan (First-Time Visitor)' },
-  { id: 'visually-impaired', label: 'Analyzing as Sam (Visually Impaired)' },
+  { id: 'elderly_non_technical', label: 'Analyzing as Maya (Elderly User)' },
   { id: 'aggregate', label: 'Aggregating results & detecting conflicts' },
 ];
 
@@ -26,16 +20,18 @@ export default function AnalysisProgress({ report }: Props) {
 
   const getStepStatus = (stepId: string): 'done' | 'active' | 'pending' => {
     if (stepId === 'screenshot') return hasScreenshots ? 'done' : (report?.status === 'processing' ? 'active' : 'pending');
-    if (stepId === 'aggregate') return report?.status === 'processing' && completedPersonas.length === 4 ? 'active' : 'pending';
+    if (stepId === 'aggregate') return report?.status === 'processing' && completedPersonas.length === 1 ? 'active' : 'pending';
     if (completedPersonas.includes(stepId)) return 'done';
+    
     // Active if it's the next one to run
     if (hasScreenshots && report?.status === 'processing') {
-      const personaSteps = ['elderly-user', 'developer-user', 'first-time-visitor', 'visually-impaired'];
+      const personaSteps = ['elderly_non_technical'];
       const nextIdx = completedPersonas.length;
       if (nextIdx < personaSteps.length && personaSteps[nextIdx] === stepId) return 'active';
     }
     return 'pending';
   };
+
 
   return (
     <div
@@ -71,7 +67,7 @@ export default function AnalysisProgress({ report }: Props) {
       <p style={{ color: 'var(--color-text-secondary)', marginBottom: '40px', lineHeight: 1.6 }}>
         {report?.url ? (
           <>
-            Running 4 AI persona agents on{' '}
+            Running AI persona agent on{' '}
             <span style={{ color: 'var(--color-accent-1)' }}>
               {new URL(report.url).hostname}
             </span>
@@ -187,7 +183,7 @@ export default function AnalysisProgress({ report }: Props) {
             ) : null;
           })}
           <span style={{ color: 'var(--color-text-secondary)', fontSize: '13px', alignSelf: 'center', marginLeft: '4px' }}>
-            {completedPersonas.length}/4 personas done
+            {completedPersonas.length}/1 personas done
           </span>
         </div>
       )}

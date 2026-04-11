@@ -92,28 +92,12 @@ async function enforceCallSpacing(): Promise<void> {
   lastCallTimestamp = Date.now();
 }
 
-/**
- * Analyzes a screenshot with a given prompt using Gemini Vision.
- *
- * Behaviour:
- * - Enforces minimum inter-call spacing to avoid per-minute limits
- * - Retries per-MINUTE rate limits with the suggested delay
- * - Fails IMMEDIATELY on daily quota exhaustion (no pointless retries)
- *
- * @param screenshotPath - Absolute path to the screenshot file
- * @param prompt         - The persona-specific analysis prompt
- */
-export async function analyzeScreenshotWithGemini(
-  screenshotPath: string,
+export async function analyzeBufferWithGemini(
+  imageBuffer: Buffer,
   prompt: string,
 ): Promise<string> {
   const ai = getClient();
-
-  if (!fs.existsSync(screenshotPath)) {
-    throw new Error(`Screenshot not found at path: ${screenshotPath}`);
-  }
-
-  const imageData = fs.readFileSync(screenshotPath, { encoding: 'base64' });
+  const imageData = imageBuffer.toString('base64');
 
   let attempt = 1;
   while (true) {
@@ -140,7 +124,6 @@ export async function analyzeScreenshotWithGemini(
       const limitType = classifyRateLimit(error);
 
       if (limitType === 'daily') {
-        // Daily quota gone — throw honest error, NO mock data.
         throw new Error(
           '🚫 Gemini free-tier DAILY quota exhausted.\n' +
           'Your quota resets at midnight Pacific Time.\n' +
@@ -160,12 +143,34 @@ export async function analyzeScreenshotWithGemini(
           `Waiting ${retryDelaySec}s before retry...`
         );
         await sleep(retryDelayMs);
-        lastCallTimestamp = 0; // reset so spacing doesn't double-wait
+        lastCallTimestamp = 0;
         attempt++;
       } else {
-        // Non-quota error (network, auth, etc.) — don't retry, let it bubble up
         throw error;
       }
     }
   }
+}
+
+/**
+ * Analyzes a screenshot with a given prompt using Gemini Vision.
+ *
+ * Behaviour:
+ * - Enforces minimum inter-call spacing to avoid per-minute limits
+ * - Retries per-MINUTE rate limits with the suggested delay
+ * - Fails IMMEDIATELY on daily quota exhaustion (no pointless retries)
+ *
+ * @param screenshotPath - Absolute path to the screenshot file
+ * @param prompt         - The persona-specific analysis prompt
+ */
+export async function analyzeScreenshotWithGemini(
+  screenshotPath: string,
+  prompt: string,
+): Promise<string> {
+  if (!fs.existsSync(screenshotPath)) {
+    throw new Error(`Screenshot not found at path: ${screenshotPath}`);
+  }
+
+  const imageBuffer = fs.readFileSync(screenshotPath);
+  return analyzeBufferWithGemini(imageBuffer, prompt);
 }
