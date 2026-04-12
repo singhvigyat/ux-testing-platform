@@ -1,14 +1,12 @@
 import type { UXReport } from '../types';
+import { useMemo } from 'react';
 
-const PERSONAS_META: Record<string, { avatar: string; color: string }> = {
-  'elderly_non_technical': { avatar: '👵', color: '#f59e0b' },
+const PERSONAS_META: Record<string, { avatar: string; color: string; label: string }> = {
+  'elderly_non_technical': { avatar: '👵', color: '#f59e0b', label: 'Maya (Elderly User)' },
+  'developer': { avatar: '💻', color: '#3b82f6', label: 'Dev (Developer)' },
+  'first_time_visitor': { avatar: '👀', color: '#10b981', label: 'Arjun (First-time Visitor)' },
+  'visually_impaired': { avatar: '🦯', color: '#8b5cf6', label: 'Priya (Visually Impaired)' },
 };
-
-const ANALYSIS_STEPS = [
-  { id: 'screenshot', label: 'Capturing screenshots with Playwright' },
-  { id: 'elderly_non_technical', label: 'Analyzing as Maya (Elderly User)' },
-  { id: 'aggregate', label: 'Aggregating results & detecting conflicts' },
-];
 
 interface Props {
   report: UXReport | null;
@@ -17,17 +15,30 @@ interface Props {
 export default function AnalysisProgress({ report }: Props) {
   const completedPersonas = report?.personaInsights.map((p) => p.personaId) ?? [];
   const hasScreenshots = !!(report?.screenshots?.desktop);
+  const selectedPersonas = report?.selectedPersonas ?? ['elderly_non_technical']; // fallback
+
+  const ANALYSIS_STEPS = useMemo(() => {
+    const steps = [
+      { id: 'screenshot', label: 'Capturing screenshots with Playwright' }
+    ];
+    
+    selectedPersonas.forEach(pid => {
+      const meta = PERSONAS_META[pid] || { label: pid, avatar: '🤖' };
+      steps.push({ id: pid, label: `Analyzing as ${meta.label}` });
+    });
+    
+    steps.push({ id: 'aggregate', label: 'Aggregating results & detecting conflicts' });
+    return steps;
+  }, [selectedPersonas]);
 
   const getStepStatus = (stepId: string): 'done' | 'active' | 'pending' => {
     if (stepId === 'screenshot') return hasScreenshots ? 'done' : (report?.status === 'processing' ? 'active' : 'pending');
-    if (stepId === 'aggregate') return report?.status === 'processing' && completedPersonas.length === 1 ? 'active' : 'pending';
+    if (stepId === 'aggregate') return report?.status === 'processing' && completedPersonas.length === selectedPersonas.length ? 'active' : 'pending';
     if (completedPersonas.includes(stepId)) return 'done';
     
-    // Active if it's the next one to run
+    // Active if it's currently running (since they run in parallel, all selected but not completed are 'active')
     if (hasScreenshots && report?.status === 'processing') {
-      const personaSteps = ['elderly_non_technical'];
-      const nextIdx = completedPersonas.length;
-      if (nextIdx < personaSteps.length && personaSteps[nextIdx] === stepId) return 'active';
+      if (selectedPersonas.includes(stepId) && !completedPersonas.includes(stepId)) return 'active';
     }
     return 'pending';
   };
@@ -183,7 +194,7 @@ export default function AnalysisProgress({ report }: Props) {
             ) : null;
           })}
           <span style={{ color: 'var(--color-text-secondary)', fontSize: '13px', alignSelf: 'center', marginLeft: '4px' }}>
-            {completedPersonas.length}/1 personas done
+            {completedPersonas.length}/{selectedPersonas.length} personas done
           </span>
         </div>
       )}

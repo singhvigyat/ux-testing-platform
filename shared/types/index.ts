@@ -14,9 +14,9 @@ export type Persona = {
   painPoints: string[];
   traits: {
     readingSpeed: 'slow' | 'fast' | 'medium';
-    visionAcuity: 'reduced' | 'normal' | 'high';
-    techFamiliarity: 'low' | 'medium' | 'high';
-    attentionSpan: 'short' | 'medium' | 'long';
+    visionAcuity: 'reduced' | 'normal' | 'high' | 'low';
+    techFamiliarity: 'low' | 'medium' | 'high' | 'expert';
+    attentionSpan: 'short' | 'medium' | 'long' | 'low' | 'very_low';
     errorTolerance: 'low' | 'medium' | 'high';
   };
   heuristics: string[];
@@ -64,6 +64,7 @@ export interface UXReport {
   url: string;
   status: JobStatus;
   screenshots: ScreenshotSet;
+  selectedPersonas: string[];
   personaInsights: PersonaAnalysis[];
   conflicts: UXConflict[];
   summary: string;

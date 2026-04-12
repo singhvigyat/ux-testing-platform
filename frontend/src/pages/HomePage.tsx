@@ -12,6 +12,9 @@ const EXAMPLE_URLS = [
 
 const AVAILABLE_PERSONAS = [
   { id: 'elderly_non_technical', avatar: '👵', name: 'Maya', role: 'Elderly User', color: '#f59e0b' },
+  { id: 'developer', avatar: '💻', name: 'Dev', role: 'Developer', color: '#3b82f6' },
+  { id: 'first_time_visitor', avatar: '👀', name: 'Arjun', role: 'First-time Visitor', color: '#10b981' },
+  { id: 'visually_impaired', avatar: '🦯', name: 'Priya', role: 'Visually Impaired', color: '#8b5cf6' },
 ];
 
 

@@ -41,12 +41,19 @@ export async function startAnalysis(req: Request, res: Response): Promise<void> 
   const generatedJobId = uuidv4();
   const now = new Date().toISOString();
 
+  const activePersonas = Array.isArray(personaIds) && personaIds.length > 0
+    ? personas.filter((p) => personaIds.includes(p.id))
+    : personas;
+
+  const selectedPersonaIds = activePersonas.map(p => p.id);
+
   // Create initial job record
   const initialReport: UXReport = {
     jobId: generatedJobId,
     url: normalizedUrl,
     status: 'pending',
     screenshots: { desktop: '', mobile: '', tablet: '' },
+    selectedPersonas: selectedPersonaIds,
     personaInsights: [],
     conflicts: [],
     summary: '',
@@ -115,24 +122,27 @@ async function runAnalysis(
     updateJob({ screenshots });
     console.log(`[Job ${jobId}] ✅ Screenshots captured`);
 
-    // Step 2: Run each persona analysis sequentially (to respect rate limits)
-    const personaInsights = [];
+    // Step 2: Run all persona agents in parallel
     const activePersonas = Array.isArray(personaIds) && personaIds.length > 0
       ? personas.filter((p) => personaIds.includes(p.id))
       : personas; // fallback to all if none specified
 
-    for (const persona of activePersonas) {
-      console.log(`[Job ${jobId}] 🤖 Analyzing as: ${persona.name}...`);
-      const analysis = await analyzeWithPersona(persona, screenshots.desktop);
-      personaInsights.push(analysis);
-      updateJob({ personaInsights: [...personaInsights] });
-      
-      console.log(`\n[Job ${jobId}] ✅ ${persona.name} analysis complete (score: ${analysis.overallScore}/10)`);
+    console.log(`[Job ${jobId}] 🤖 Analyzing with ${activePersonas.length} personas in parallel...`);
+    const analysisPromises = activePersonas.map(persona => 
+      analyzeWithPersona(persona, screenshots.desktop)
+    );
+
+    const results = await Promise.all(analysisPromises);
+    
+    // Filter out nulls (failed agents) and log successes
+    const personaInsights = results.filter((r): r is UXReport['personaInsights'][0] => r !== null);
+    
+    updateJob({ personaInsights: [...personaInsights] });
+
+    personaInsights.forEach(analysis => {
+      console.log(`\n[Job ${jobId}] ✅ ${analysis.personaName} analysis complete (score: ${analysis.overallScore}/10)`);
       console.dir(analysis, { depth: null, colors: true });
-      // Note: inter-call spacing is handled by visionService (MIN_CALL_DELAY_MS)
-    }
-
-
+    });
 
     // Step 3: Aggregate results and detect conflicts
     console.log(`[Job ${jobId}] 📊 Building final report...`);

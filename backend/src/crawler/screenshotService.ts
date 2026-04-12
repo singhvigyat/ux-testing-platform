@@ -23,6 +23,8 @@ type DOMElement = {
   ariaLabel: string;
   isClickable: boolean;
   section: string;
+  /** True when text is visually embedded in an image/SVG — do not assume it lacks a label */
+  imageOnly: boolean;
 };
 
 type ViewportDOM = {
@@ -41,6 +43,9 @@ async function extractDOMForViewport(page: Page, viewport: 'desktop' | 'tablet' 
 
     const allElements = document.querySelectorAll('*');
     let sectionCounter = 1;
+    // Track which DOM nodes have been captured so we can skip their descendants.
+    // This prevents double-badges like [10]+[11] on logo links (a > img, a > svg, etc.)
+    const capturedNodes = new Set<Element>();
 
     for (const el of allElements) {
       const tagInfo = el.tagName.toLowerCase();
@@ -55,14 +60,57 @@ async function extractDOMForViewport(page: Page, viewport: 'desktop' | 'tablet' 
       // Ensure bounding box is within the current viewport
       if (rect.y < 0 || rect.y > window.innerHeight) continue;
 
-      let text = (el as HTMLElement).innerText || (el as HTMLInputElement).value || (el as HTMLImageElement).alt || '';
-      text = text.trim().substring(0, 80);
+      // --- Ancestor deduplication ---
+      // If any ancestor of this element has already been captured, skip this element.
+      // This handles ALL nested cases: img inside a, svg inside a, span inside li, etc.
+      let ancestor: Element | null = el.parentElement;
+      let hasCaputredAncestor = false;
+      while (ancestor) {
+        if (capturedNodes.has(ancestor)) {
+          hasCaputredAncestor = true;
+          break;
+        }
+        ancestor = ancestor.parentElement;
+      }
+      if (hasCaputredAncestor) continue;
+
+      const ariaLabel = el.getAttribute('aria-label') || '';
+      const titleAttr = el.getAttribute('title') || '';
+      const placeholder = (el as HTMLInputElement).placeholder || '';
+
+      // Rich text extraction: prefer visible text, then metadata attributes
+      let rawText = (el as HTMLElement).innerText
+        || (el as HTMLInputElement).value
+        || (el as HTMLImageElement).alt
+        || ariaLabel
+        || titleAttr
+        || placeholder
+        || '';
+      rawText = rawText.trim().substring(0, 80);
+
+      // Detect if the element's visible label is embedded inside an image/SVG
+      const hasSvgChild = el.querySelector('svg') !== null;
+      const hasImgChild = el.querySelector('img') !== null;
+      const isImageOnly = rawText === '' && (tagInfo === 'img' || hasSvgChild || hasImgChild);
+
+      // Use a richer text value for the JSON
+      const text = rawText !== '' ? rawText : (isImageOnly ? '[visual label — see screenshot]' : '');
 
       const fontSize = parseFloat(style.fontSize) || 0;
-      const color = style.color || '';
+      
+      // Get the actual computed color of the inner text, in case it is wrapped in an ignored span
+      let color = style.color || '';
+      const treeWalker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+      let firstTextNode = treeWalker.nextNode();
+      while (firstTextNode && firstTextNode.nodeValue && firstTextNode.nodeValue.trim() === '') {
+        firstTextNode = treeWalker.nextNode();
+      }
+      if (firstTextNode && firstTextNode.parentElement) {
+        color = window.getComputedStyle(firstTextNode.parentElement).color || color;
+      }
+
       const backgroundColor = style.backgroundColor || '';
       const role = el.getAttribute('role') || '';
-      const ariaLabel = el.getAttribute('aria-label') || '';
       const isClickable = tagInfo === 'a' || tagInfo === 'button' || style.cursor === 'pointer';
 
       let section = '';
@@ -104,7 +152,10 @@ async function extractDOMForViewport(page: Page, viewport: 'desktop' | 'tablet' 
         ariaLabel,
         isClickable,
         section,
+        imageOnly: isImageOnly,
       });
+      // Mark this node as captured so its descendants are skipped
+      capturedNodes.add(el);
     }
 
     return results;
