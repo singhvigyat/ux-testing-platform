@@ -1,7 +1,5 @@
 # Multi-Agent UX Testing Platform
 
-> A GenAI portfolio project by **Vigyat Singh** — demonstrating multi-agent visual AI for UX analysis.
-
 ## What It Does
 
 Submit any website URL. The system:
@@ -45,17 +43,15 @@ ux-tester-platform/
 │       └── types/        # TypeScript types
 │
 ├── backend/              # Node.js + Express
-│   └── src/
-│       ├── agents/       # Persona configs + analyzer
-│       ├── aggregator/   # Report builder + conflict detection
-│       ├── ai/           # Gemini vision service
-│       ├── controllers/  # Route handlers
-│       ├── crawler/      # Playwright screenshot service
-│       ├── routes/       # Express routes
-│       └── types/        # TypeScript types
-│
-└── shared/               # Shared types (future use)
-    └── types/
+    └── src/
+        ├── agents/       # Persona configs + analyzer
+        ├── aggregator/   # Report builder + conflict detection
+        ├── ai/           # Gemini vision service
+        ├── controllers/  # Route handlers
+        ├── crawler/      # Playwright screenshot service
+        ├── routes/       # Express routes
+        └── types/        # TypeScript types
+
 ```
 
 ## Setup
@@ -172,6 +168,3 @@ React displays structured UX report
 | `GEMINI_API_KEY` | ✅ | Google Gemini API key |
 | `PORT` | Optional | Backend port (default: 3001) |
 
-## License
-
-MIT — Vigyat Singh
