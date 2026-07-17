@@ -31,6 +31,13 @@ export type UXIssue = {
   impact: string;              // why this matters for this persona specifically
   severity: "low" | "medium" | "high" | "critical";
   recommendation: string;      // one concrete fix
+  verification?: IssueVerification;
+};
+
+export type IssueVerification = {
+  verdict: 'verified' | 'unverified';
+  evidence: string;
+  note: string;
 };
 
 export type PersonaAnalysis = {
@@ -43,13 +50,23 @@ export type PersonaAnalysis = {
   overallScore: number;        // 1-10, this persona's experience rating
 };
 
-export interface UXConflict {
-  topic: string;
-  personaA: string;
-  personaB: string;
-  perspectiveA: string;
-  perspectiveB: string;
-}
+export type ConflictType = 'severity_disagreement' | 'persona_opposition' | 'semantic_conflict';
+
+export type Conflict = {
+  elementId: number | null;
+  elementDescription: string;
+  section: string;
+  conflictType: ConflictType;
+  personasInvolved: string[];
+  summary: string;
+  designImplication: string;
+};
+
+export type ConflictReport = {
+  totalConflicts: number;
+  conflicts: Conflict[];
+  mostContestedElement: number | null;
+};
 
 export interface ScreenshotSet {
   desktop: string;
@@ -64,11 +81,15 @@ export interface UXReport {
   url: string;
   status: JobStatus;
   screenshots: ScreenshotSet;
+  selectedPersonas: string[];
   personaInsights: PersonaAnalysis[];
-  conflicts: UXConflict[];
+  conflicts: Conflict[];
+  conflictReport: ConflictReport;
   summary: string;
   majorIssues: string[];
   recommendations: string[];
+  verificationResults: VerificationResult[];
+  verificationSummary: VerificationSummary;
   severityScore: number;
   analysisTime: number;
   error?: string;
@@ -87,12 +108,45 @@ export interface AnalyzeResponse {
 
 export interface UIStructure {
   viewport: string;
-  elements: {
-    id: number;
-    tag: string;
-    text: string;
-    boundingBox: { x: number; y: number; width: number; height: number };
-    section: string;
-  }[];
+  pageWidth?: number;
+  elementCount?: number;
+  elements: UIElement[];
   sections: Record<string, number[]>;
 }
+
+export type UIElement = {
+  id: number;
+  tag: string;
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fontSize: number;
+  color: string;
+  backgroundColor: string;
+  role: string;
+  ariaLabel: string;
+  isClickable: boolean;
+  section: string;
+  imageOnly: boolean;
+};
+
+export type VerificationVerdict = 'verified' | 'unverified' | 'element_not_found';
+
+export type VerificationResult = {
+  issueElementId: number;
+  personaId: string;
+  verdict: VerificationVerdict;
+  evidence: string;
+  note: string;
+};
+
+export type VerificationSummary = {
+  verified: number;
+  unverified: number;
+  elementNotFound: number;
+  removedIssueCount: number;
+  totalIssueCount: number;
+  removedIssueRatio: number;
+};
