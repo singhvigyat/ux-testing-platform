@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { startAnalysis } from '../services/api';
-import { Bot, Scan, Users, Zap, Shield, TrendingUp } from 'lucide-react';
+import { PERSONAS } from '../data/personas';
+import SiteNav from '../components/SiteNav';
+import Rise from '../components/Rise';
+import Reveal from '../components/Reveal';
 
 const EXAMPLE_URLS = [
   'https://stripe.com',
@@ -10,44 +13,36 @@ const EXAMPLE_URLS = [
   'https://vercel.com',
 ];
 
-const AVAILABLE_PERSONAS = [
-  { id: 'elderly_non_technical', avatar: '👵', name: 'Maya', role: 'Elderly User', color: '#f59e0b' },
-  { id: 'developer', avatar: '💻', name: 'Dev', role: 'Developer', color: '#3b82f6' },
-  { id: 'first_time_visitor', avatar: '👀', name: 'Arjun', role: 'First-time Visitor', color: '#10b981' },
-  { id: 'visually_impaired', avatar: '🦯', name: 'Priya', role: 'Visually Impaired', color: '#8b5cf6' },
-];
-
-
 const FEATURES = [
   {
-    icon: <Users size={20} />,
-    title: '4 AI Personas',
-    desc: 'Elderly user, developer, first-time visitor & accessibility expert',
+    index: '01',
+    title: 'Independent reads',
+    desc: 'Each persona is a separate pass. They do not share notes until the end.',
   },
   {
-    icon: <Scan size={20} />,
-    title: 'Screenshot Analysis',
-    desc: 'Captures desktop, mobile & full-page views automatically',
+    index: '02',
+    title: 'Three viewports',
+    desc: 'Desktop, tablet, and mobile, captured as each reader would actually see them.',
   },
   {
-    icon: <Zap size={20} />,
-    title: 'Conflict Detection',
-    desc: 'Finds where different users disagree on UX quality',
+    index: '03',
+    title: 'Disagreement as signal',
+    desc: 'Where readers conflict, the interface is making a trade-off. We name it.',
   },
   {
-    icon: <Shield size={20} />,
-    title: 'Accessibility Audit',
-    desc: 'WCAG-aligned visual accessibility checks',
+    index: '04',
+    title: 'Contrast and type',
+    desc: 'Low-vision and late-life readers check size, contrast, and tap targets.',
   },
   {
-    icon: <TrendingUp size={20} />,
-    title: 'Severity Scoring',
-    desc: 'Weighted issue prioritization across all personas',
+    index: '05',
+    title: 'Weighted severity',
+    desc: 'Findings are ranked across personas, not averaged into a hollow score.',
   },
   {
-    icon: <Bot size={20} />,
-    title: 'Gemini AI',
-    desc: 'Powered by Google Gemini 2.0 Flash vision model',
+    index: '06',
+    title: 'Concrete fixes',
+    desc: 'Every issue comes with an observation, an impact, and a specific change.',
   },
 ];
 
@@ -62,7 +57,7 @@ export default function HomePage() {
     e.preventDefault();
     if (!url.trim()) return;
     if (selectedPersonas.length === 0) {
-      setError('Please select at least one persona.');
+      setError('Select at least one reader.');
       return;
     }
 
@@ -73,387 +68,145 @@ export default function HomePage() {
       const { jobId } = await startAnalysis(url.trim(), selectedPersonas);
       navigate(`/report/${jobId}`);
     } catch (err) {
-      setError((err as Error).message || 'Failed to start analysis. Is the backend running?');
+      setError((err as Error).message || 'Could not start. Is the backend running?');
       setLoading(false);
     }
   };
 
   const togglePersona = (id: string) => {
-    setSelectedPersonas(prev => 
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    setSelectedPersonas((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
     );
   };
 
-  const useExample = (exUrl: string) => setUrl(exUrl);
-
   return (
-    <div style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
-      {/* Ambient glow orbs */}
-      <div
-        style={{
-          position: 'fixed',
-          top: '10%',
-          left: '5%',
-          width: '500px',
-          height: '500px',
-          background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
-      <div
-        style={{
-          position: 'fixed',
-          bottom: '10%',
-          right: '5%',
-          width: '400px',
-          height: '400px',
-          background: 'radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
+    <div className="page">
+      <SiteNav />
 
-      <div className="container-main" style={{ paddingTop: '80px', paddingBottom: '80px', position: 'relative', zIndex: 1 }}>
-        {/* ── Header ── */}
-        <header style={{ textAlign: 'center', marginBottom: '64px' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '6px 16px',
-              borderRadius: '20px',
-              background: 'rgba(99,102,241,0.1)',
-              border: '1px solid rgba(99,102,241,0.3)',
-              marginBottom: '24px',
-              fontSize: '13px',
-              color: '#818cf8',
-              fontWeight: 500,
-            }}
-            className="animate-fade-in"
-          >
-            <Bot size={14} />
-            Multi-Agent AI System • Powered by Gemini Vision
-          </div>
+      <section className="hero">
+        <h1 className="hero-title">
+          <Rise delay={0}>Four people,</Rise>
+          <Rise delay={90}>one interface,</Rise>
+          <Rise delay={180}>
+            <em>then they disagree.</em>
+          </Rise>
+        </h1>
 
-          <h1
-            style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, lineHeight: 1.1, marginBottom: '24px' }}
-            className="animate-fade-in delay-100"
-          >
-            <span className="gradient-text">Multi-Agent</span>
-            <br />
-            UX Testing Platform
-          </h1>
-
-          <p
-            style={{
-              fontSize: '1.2rem',
-              color: 'var(--color-text-secondary)',
-              maxWidth: '600px',
-              margin: '0 auto 40px',
-              lineHeight: 1.7,
-            }}
-            className="animate-fade-in delay-200"
-          >
-            Submit any website URL. Four AI personas — each simulating a different user —
-            independently analyze the interface and surface{' '}
-            <span style={{ color: 'var(--color-accent-1)' }}>conflicts, accessibility issues,</span> and{' '}
-            <span style={{ color: 'var(--color-accent-1)' }}>usability problems</span> invisible to a single lens.
+        <div className="hero-aside fade-rise" style={{ '--d': '420ms' } as CSSProperties}>
+          <p className="hero-dek">
+            Submit a URL. Four independent readers look at the same screen the way real people
+            would: elderly, impatient, arriving cold, seeing poorly. Then they argue about what
+            fails.
           </p>
-        </header>
 
-        {/* ── URL Input Form ── */}
-        <div
-          style={{ maxWidth: '680px', margin: '0 auto 48px' }}
-          className="animate-fade-in delay-300"
-        >
-          <form onSubmit={handleSubmit}>
-            <div
-              style={{
-                display: 'flex',
-                gap: '12px',
-                padding: '8px',
-                borderRadius: '16px',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid var(--color-border)',
-                backdropFilter: 'blur(12px)',
-                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-              }}
-              id="url-form-container"
-            >
+          <form onSubmit={handleSubmit} className="url-form">
+            <label className="kicker" htmlFor="website-url-input">
+              Website
+            </label>
+            <div className="url-row" id="url-form-container">
               <input
                 id="website-url-input"
                 type="text"
                 value={url}
-                onChange={(e) => { setUrl(e.target.value); setError(''); }}
-                placeholder="Enter website URL (e.g. https://stripe.com)"
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setError('');
+                }}
+                placeholder="https://stripe.com"
                 disabled={loading}
-                style={{
-                  flex: 1,
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: 'var(--color-text-primary)',
-                  fontSize: '16px',
-                  padding: '12px 16px',
-                  fontFamily: 'inherit',
-                }}
-                onFocus={(e) => {
-                  const container = e.target.closest('#url-form-container') as HTMLElement;
-                  if (container) {
-                    container.style.borderColor = 'var(--color-border-accent)';
-                    container.style.boxShadow = 'var(--shadow-glow)';
-                  }
-                }}
-                onBlur={(e) => {
-                  const container = e.target.closest('#url-form-container') as HTMLElement;
-                  if (container) {
-                    container.style.borderColor = 'var(--color-border)';
-                    container.style.boxShadow = 'none';
-                  }
-                }}
+                autoComplete="url"
+                spellCheck={false}
               />
               <button
                 id="start-analysis-btn"
                 type="submit"
                 disabled={loading || !url.trim()}
                 className="btn-primary"
-                style={{ padding: '12px 28px', fontSize: '15px', whiteSpace: 'nowrap' }}
               >
                 {loading ? (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <>
                     <svg
-                      width="16"
-                      height="16"
+                      width="14"
+                      height="14"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
-                      style={{ animation: 'spin 1s linear infinite' }}
+                      strokeWidth="1.5"
+                      className="spin"
                     >
                       <path d="M21 12a9 9 0 11-6.219-8.56" />
                     </svg>
-                    Starting...
-                  </span>
+                    Starting
+                  </>
                 ) : (
-                  'Analyze →'
+                  <>
+                    Analyze <span className="arrow">→</span>
+                  </>
                 )}
               </button>
             </div>
           </form>
 
-          {/* Error message */}
-          {error && (
-            <div
-              style={{
-                marginTop: '12px',
-                padding: '12px 16px',
-                borderRadius: '10px',
-                background: 'rgba(239,68,68,0.1)',
-                border: '1px solid rgba(239,68,68,0.3)',
-                color: '#f87171',
-                fontSize: '14px',
-              }}
-            >
-              ⚠️ {error}
-            </div>
-          )}
+          {error && <p className="form-error">{error}</p>}
 
-          {/* Persona Selectors */}
-          <div style={{
-            marginTop: '16px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-            justifyContent: 'center',
-          }}>
-            {AVAILABLE_PERSONAS.map((p) => {
-              const isActive = selectedPersonas.includes(p.id);
+          <div className="persona-picks">
+            {PERSONAS.map((p) => {
+              const isOn = selectedPersonas.includes(p.id);
               return (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => togglePersona(p.id)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 14px',
-                    borderRadius: '20px',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    fontFamily: 'inherit',
-                    background: isActive ? `${p.color}25` : 'rgba(255,255,255,0.02)',
-                    border: `1px solid ${isActive ? `${p.color}50` : 'var(--color-border)'}`,
-                    color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                    opacity: isActive ? 1 : 0.6,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.borderColor = `${p.color}50`;
-                      e.currentTarget.style.color = 'var(--color-text-primary)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.borderColor = 'var(--color-border)';
-                      e.currentTarget.style.color = 'var(--color-text-secondary)';
-                    }
-                  }}
+                  className={`persona-pick ${isOn ? 'is-on' : ''}`}
+                  aria-pressed={isOn}
                 >
-                  <span>{p.avatar}</span>
-                  {p.name}
+                  <span className="pick-box" aria-hidden />
+                  <span className="pick-idx">{p.index}</span>
+                  <span>
+                    <span className="pick-name">{p.name}</span>
+                    <span className="pick-role">
+                      {p.age} · {p.role}
+                    </span>
+                  </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Example URLs */}
-          <div
-            style={{
-              marginTop: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Try:</span>
+          <div className="try-row">
+            <span className="kicker">Try</span>
             {EXAMPLE_URLS.map((exUrl) => (
-              <button
-                key={exUrl}
-                onClick={() => useExample(exUrl)}
-                style={{
-                  fontSize: '12px',
-                  padding: '4px 12px',
-                  borderRadius: '20px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--color-border)',
-                  color: 'var(--color-text-secondary)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  fontFamily: 'inherit',
-                }}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLButtonElement).style.borderColor = 'rgba(99,102,241,0.4)';
-                  (e.target as HTMLButtonElement).style.color = 'var(--color-accent-1)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLButtonElement).style.borderColor = 'var(--color-border)';
-                  (e.target as HTMLButtonElement).style.color = 'var(--color-text-secondary)';
-                }}
-              >
+              <button key={exUrl} type="button" className="try-chip" onClick={() => setUrl(exUrl)}>
                 {new URL(exUrl).hostname}
               </button>
             ))}
           </div>
         </div>
+      </section>
 
-        {/* ── Persona Showcase ── */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px',
-            maxWidth: '900px',
-            margin: '0 auto 64px',
-          }}
-          className="animate-fade-in delay-400"
-        >
-          {AVAILABLE_PERSONAS.map((persona) => (
-            <div
-              key={persona.id}
-              className="glass-card"
-              style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px' }}
-            >
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '24px',
-                  background: `${persona.color}15`,
-                  border: `2px solid ${persona.color}40`,
-                  flexShrink: 0,
-                }}
-              >
-                {persona.avatar}
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text-primary)' }}>
-                  {persona.name}
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                  {persona.role}
-                </div>
-              </div>
-            </div>
+      <section className="section-block">
+        <div className="section-head">
+          <span className="kicker">Notes</span>
+          <h2>What gets read</h2>
+        </div>
+        <div className="feature-grid">
+          {FEATURES.map((feature, i) => (
+            <Reveal key={feature.title} className="feature" delay={i * 50}>
+              <div className="feature-idx">{feature.index}</div>
+              <h3>{feature.title}</h3>
+              <p>{feature.desc}</p>
+            </Reveal>
           ))}
         </div>
+      </section>
 
-        {/* ── Feature Grid ── */}
-        <div style={{ maxWidth: '900px', margin: '0 auto' }} className="animate-fade-in delay-500">
-          <h2
-            style={{
-              textAlign: 'center',
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: 'var(--color-text-secondary)',
-              marginBottom: '32px',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}
-          >
-            What gets analyzed
-          </h2>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-              gap: '16px',
-            }}
-          >
-            {FEATURES.map((feature) => (
-              <div
-                key={feature.title}
-                className="glass-card"
-                style={{ padding: '20px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}
-              >
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '8px',
-                    background: 'rgba(99,102,241,0.15)',
-                    border: '1px solid rgba(99,102,241,0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--color-accent-1)',
-                    flexShrink: 0,
-                  }}
-                >
-                  {feature.icon}
-                </div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
-                    {feature.title}
-                  </div>
-                  <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                    {feature.desc}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <footer className="site-foot">
+        <span>Four readers. One screen.</span>
+        <span>·</span>
+        <span>Vision by Gemini</span>
+        <span>·</span>
+        <span>Capture by Playwright</span>
+      </footer>
     </div>
   );
 }
