@@ -1,4 +1,4 @@
-# Multi-Agent UX Testing Platform
+# Argus
 
 ## What It Does
 

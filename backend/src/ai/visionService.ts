@@ -152,6 +152,42 @@ export async function analyzeBufferWithGemini(
   }
 }
 
+export async function analyzeTextWithGemini(prompt: string): Promise<string> {
+  const ai = getClient();
+  await enforceCallSpacing();
+  console.log('[Gemini/Text] Calling API (single attempt)...');
+
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: [{ text: prompt }],
+    });
+
+    const text = response.text;
+    if (!text) throw new Error('Gemini returned an empty text response');
+
+    console.log('[Gemini/Text] Success.');
+    return text;
+  } catch (error) {
+    const limitType = classifyRateLimit(error);
+    if (limitType === 'daily') {
+      throw new Error(
+        'Gemini daily quota exhausted for semantic conflict detection. ' +
+        'Retry after quota reset or configure a billed project.'
+      );
+    }
+
+    if (limitType === 'minute') {
+      throw new Error(
+        'Gemini per-minute rate limit hit during semantic conflict detection. ' +
+        'This pass uses a single AI call and did not retry.'
+      );
+    }
+
+    throw error;
+  }
+}
+
 /**
  * Analyzes a screenshot with a given prompt using Gemini Vision.
  *

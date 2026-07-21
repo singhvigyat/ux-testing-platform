@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { UXReport, JobStatus } from '../types';
+import { UIStructure, UXReport } from '../types';
 import { captureScreenshots } from '../crawler/screenshotService';
 import { analyzeWithPersona } from '../agents/personaAnalyzer';
 import { buildReport } from '../aggregator/reportBuilder';
@@ -8,6 +10,7 @@ import { personas } from '../agents/personas';
 
 // In-memory job store (MVP — no DB needed)
 const jobs = new Map<string, UXReport>();
+const SCREENSHOTS_BASE_DIR = path.join(__dirname, '..', '..', 'screenshots');
 
 // URL validation
 function isValidUrl(url: string): boolean {
@@ -56,9 +59,23 @@ export async function startAnalysis(req: Request, res: Response): Promise<void> 
     selectedPersonas: selectedPersonaIds,
     personaInsights: [],
     conflicts: [],
+    conflictReport: {
+      totalConflicts: 0,
+      conflicts: [],
+      mostContestedElement: null,
+    },
     summary: '',
     majorIssues: [],
     recommendations: [],
+    verificationResults: [],
+    verificationSummary: {
+      verified: 0,
+      unverified: 0,
+      elementNotFound: 0,
+      removedIssueCount: 0,
+      totalIssueCount: 0,
+      removedIssueRatio: 0,
+    },
     severityScore: 0,
     analysisTime: 0,
     createdAt: now,
@@ -146,7 +163,8 @@ async function runAnalysis(
 
     // Step 3: Aggregate results and detect conflicts
     console.log(`[Job ${jobId}] 📊 Building final report...`);
-    const report = buildReport(jobId, url, personaInsights, screenshots);
+    const uiStructure = loadDesktopUIStructure(jobId);
+    const report = await buildReport(jobId, url, personaInsights, screenshots, uiStructure);
     const analysisTime = Date.now() - startTime;
 
     updateJob({
@@ -165,5 +183,27 @@ async function runAnalysis(
       error: err.message,
       analysisTime: Date.now() - startTime,
     });
+  }
+}
+
+function loadDesktopUIStructure(jobId: string): UIStructure {
+  const defaultStructure: UIStructure = {
+    viewport: 'desktop',
+    pageWidth: 0,
+    elementCount: 0,
+    elements: [],
+    sections: {},
+  };
+
+  const uiStructurePath = path.join(SCREENSHOTS_BASE_DIR, jobId, 'ui-structure-desktop.json');
+  try {
+    const content = fs.readFileSync(uiStructurePath, 'utf8');
+    return JSON.parse(content) as UIStructure;
+  } catch (error) {
+    console.warn(
+      `[Verifier] Could not read desktop UI structure for job ${jobId}. Continuing without DOM verification data.`,
+      error,
+    );
+    return defaultStructure;
   }
 }
