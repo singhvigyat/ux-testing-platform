@@ -40,21 +40,41 @@ export default function AuthMenu() {
   }
 
   const remaining = quota?.remaining ?? 0;
+  const limit = quota?.limit;
+  const quotaLabel = limit != null ? `${remaining} of ${limit} left` : `${remaining} left today`;
+  const initials = user.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
 
   return (
     <div className="auth-menu is-signed-in">
-      {user.picture ? (
-        <img src={user.picture} alt="" className="auth-avatar" referrerPolicy="no-referrer" />
-      ) : null}
-      <span className="auth-meta">
-        <span className="auth-name">{user.name}</span>
-        <span className="auth-quota">
-          {remaining} left today
+      <div className="auth-chip">
+        <span className="auth-avatar" aria-hidden="true">
+          <span className="auth-initials">{initials || '?'}</span>
+          {user.picture ? (
+            <img
+              src={user.picture}
+              alt=""
+              referrerPolicy="no-referrer"
+              onError={(event) => {
+                event.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : null}
         </span>
-      </span>
-      <button type="button" className="nav-back" onClick={() => void logout()}>
-        Sign out
-      </button>
+        <span className="auth-meta">
+          <span className="auth-name">{user.name}</span>
+          <span className="auth-quota">{quotaLabel}</span>
+        </span>
+        <span className="auth-divider" aria-hidden="true" />
+        <button type="button" className="auth-signout" onClick={() => void logout()}>
+          Sign out
+        </button>
+      </div>
     </div>
   );
 }

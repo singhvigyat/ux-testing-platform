@@ -191,7 +191,7 @@ body::after {
 
 .site-nav {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
   padding: 28px 0 48px;
   animation: fadeRise 0.85s var(--ease) both;
@@ -218,30 +218,61 @@ body::after {
   gap: 12px;
 }
 
-.auth-menu.is-signed-in {
+.auth-chip {
+  display: flex;
+  align-items: center;
   gap: 10px;
+  min-height: 40px;
+  padding: 4px 6px 4px 4px;
+  background: var(--color-cream);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
 }
 
 .auth-avatar {
-  width: 28px;
-  height: 28px;
+  position: relative;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
+  overflow: hidden;
+  background: var(--color-pine);
+}
+
+.auth-initials {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--color-cream);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.auth-avatar img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  background: var(--color-paper-2);
 }
 
 .auth-meta {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
+  justify-content: center;
+  gap: 1px;
   min-width: 0;
+  padding-right: 2px;
 }
 
 .auth-name {
   font-size: 0.8125rem;
   font-weight: 500;
+  line-height: 1.2;
   color: var(--color-ink);
-  max-width: 140px;
+  max-width: 148px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -249,11 +280,44 @@ body::after {
 
 .auth-quota,
 .auth-status {
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 500;
+  line-height: 1.2;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-ink-3);
+}
+
+.auth-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 20px;
+  background: var(--color-line);
+}
+
+.auth-signout {
+  flex-shrink: 0;
+  margin: 0 2px 0 0;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink-2);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.3s var(--ease), background-color 0.3s var(--ease);
+}
+
+.auth-signout:hover {
+  color: var(--color-ink);
+  background: var(--color-paper-2);
+}
+
+.auth-signout:focus-visible {
+  outline-offset: 2px;
 }
 
 .auth-hint {
@@ -1550,6 +1614,10 @@ body::after {
     flex-basis: 100%;
     margin-left: 0;
     justify-content: space-between;
+  }
+
+  .auth-name {
+    max-width: 110px;
   }
 
   .url-row {
