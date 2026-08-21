@@ -1,34 +1,113 @@
 import type { UXReport } from '../types';
 
-const API_BASE = '/api';
+const API_ROOT = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+const API_BASE = `${API_ROOT}/api`;
 
-/**
- * Start a new UX analysis job
- */
-export async function startAnalysis(url: string, personaIds?: string[]): Promise<{ jobId: string; message: string }> {
-  const res = await fetch(`${API_BASE}/analyze`, {
+export function assetUrl(path: string): string {
+  if (!path || path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  return `${API_ROOT}${path}`;
+}
+
+export type AuthUser = {
+  id: string;
+  email: string;
+  name: string;
+  picture: string;
+};
+
+export type QuotaSnapshot = {
+  used: number;
+  limit: number;
+  remaining: number;
+  resetAt: string;
+};
+
+export type AuthConfig = {
+  googleClientId: string;
+  configured: boolean;
+  dailyLimit: number;
+  globalDailyLimit: number;
+};
+
+export type AuthResponse = {
+  user: AuthUser;
+  quota: QuotaSnapshot;
+};
+
+async function parseError(res: Response): Promise<string> {
+  const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+  return err.error || `Server error: ${res.status}`;
+}
+
+function request(path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(`${API_BASE}${path}`, {
+    ...init,
+    credentials: 'include',
+    headers: {
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      ...init.headers,
+    },
+  });
+}
+
+export async function fetchAuthConfig(): Promise<AuthConfig> {
+  const res = await request('/auth/config');
+  if (!res.ok) {
+    throw new Error(await parseError(res));
+  }
+  return res.json();
+}
+
+export async function fetchMe(): Promise<AuthResponse | null> {
+  const res = await request('/auth/me');
+  if (res.status === 401) return null;
+  if (!res.ok) {
+    throw new Error(await parseError(res));
+  }
+  return res.json();
+}
+
+export async function loginWithGoogle(credential: string): Promise<AuthResponse> {
+  const res = await request('/auth/google', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  });
+  if (!res.ok) {
+    throw new Error(await parseError(res));
+  }
+  return res.json();
+}
+
+export async function logout(): Promise<void> {
+  const res = await request('/auth/logout', { method: 'POST' });
+  if (!res.ok) {
+    throw new Error(await parseError(res));
+  }
+}
+
+export async function startAnalysis(
+  url: string,
+  personaIds?: string[],
+): Promise<{ jobId: string; message: string; quota?: QuotaSnapshot }> {
+  const res = await request('/analyze', {
+    method: 'POST',
     body: JSON.stringify({ url, personaIds }),
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(err.error || `Server error: ${res.status}`);
+    throw new Error(await parseError(res));
   }
 
   return res.json();
 }
 
-/**
- * Get the current status / results of an analysis job
- */
 export async function getAnalysisStatus(jobId: string): Promise<UXReport> {
-  const res = await fetch(`${API_BASE}/analyze/${jobId}`);
+  const res = await request(`/analyze/${jobId}`);
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(err.error || `Server error: ${res.status}`);
+    throw new Error(await parseError(res));
   }
 
   return res.json();

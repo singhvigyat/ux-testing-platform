@@ -7,9 +7,11 @@ import { captureScreenshots } from '../crawler/screenshotService';
 import { analyzeWithPersona } from '../agents/personaAnalyzer';
 import { buildReport } from '../aggregator/reportBuilder';
 import { personas } from '../agents/personas';
+import { finishJob, tryStartJob } from '../auth/usageStore';
 
 // In-memory job store (MVP — no DB needed)
 const jobs = new Map<string, UXReport>();
+const jobOwners = new Map<string, string>();
 const SCREENSHOTS_BASE_DIR = path.join(__dirname, '..', '..', 'screenshots');
 
 // URL validation
@@ -27,6 +29,12 @@ function isValidUrl(url: string): boolean {
  * Validates URL, creates job, kicks off async analysis
  */
 export async function startAnalysis(req: Request, res: Response): Promise<void> {
+  const user = req.user;
+  if (!user) {
+    res.status(401).json({ error: 'Sign in with Google to run a reading.', code: 'UNAUTHENTICATED' });
+    return;
+  }
+
   const { url, personaIds } = req.body;
 
   if (!url || typeof url !== 'string') {
@@ -42,6 +50,16 @@ export async function startAnalysis(req: Request, res: Response): Promise<void> 
   }
 
   const generatedJobId = uuidv4();
+  const quotaResult = tryStartJob(user.id, generatedJobId);
+  if (!quotaResult.ok) {
+    res.status(quotaResult.status).json({
+      error: quotaResult.error,
+      code: quotaResult.code,
+      quota: quotaResult.quota,
+    });
+    return;
+  }
+
   const now = new Date().toISOString();
 
   const activePersonas = Array.isArray(personaIds) && personaIds.length > 0
@@ -82,20 +100,23 @@ export async function startAnalysis(req: Request, res: Response): Promise<void> 
   };
 
   jobs.set(generatedJobId, initialReport);
+  jobOwners.set(generatedJobId, user.id);
 
   // Respond immediately with jobId
   res.status(202).json({
     jobId: generatedJobId,
     message: 'Analysis started. Poll GET /api/analyze/:jobId for results.',
+    quota: quotaResult.quota,
   });
 
   // Run analysis asynchronously (don't await)
-  runAnalysis(generatedJobId, normalizedUrl, personaIds).catch((err) => {
+  runAnalysis(generatedJobId, normalizedUrl, personaIds, user.id).catch((err) => {
     console.error(`[Job ${generatedJobId}] Fatal error:`, err);
     const job = jobs.get(generatedJobId);
     if (job) {
       jobs.set(generatedJobId, { ...job, status: 'error', error: err.message });
     }
+    finishJob(user.id, generatedJobId);
   });
 }
 
@@ -112,6 +133,12 @@ export function getAnalysisStatus(req: Request, res: Response): void {
     return;
   }
 
+  const ownerId = jobOwners.get(jobId);
+  if (!req.user || ownerId !== req.user.id) {
+    res.status(404).json({ error: 'Job not found' });
+    return;
+  }
+
   res.json(job);
 }
 
@@ -121,7 +148,8 @@ export function getAnalysisStatus(req: Request, res: Response): void {
 async function runAnalysis(
   jobId: string,
   url: string,
-  personaIds?: string[]
+  personaIds: string[] | undefined,
+  userId: string,
 ): Promise<void> {
   const startTime = Date.now();
   const updateJob = (updates: Partial<UXReport>) => {
@@ -175,6 +203,7 @@ async function runAnalysis(
     });
 
     console.log(`[Job ${jobId}] 🎉 Analysis complete in ${(analysisTime / 1000).toFixed(1)}s`);
+    finishJob(userId, jobId);
   } catch (error) {
     const err = error as Error;
     console.error(`[Job ${jobId}] ❌ Error:`, err.message);
@@ -183,6 +212,7 @@ async function runAnalysis(
       error: err.message,
       analysisTime: Date.now() - startTime,
     });
+    finishJob(userId, jobId);
   }
 }
 

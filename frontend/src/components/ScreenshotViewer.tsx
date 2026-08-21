@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ScreenshotSet } from '../types';
+import { assetUrl } from '../services/api';
 
 interface Props {
   screenshots: ScreenshotSet;
@@ -26,7 +27,7 @@ export default function ScreenshotViewer({ screenshots, url }: Props) {
       if (activeTab === 'mobile') src = src.replace('mobile.png', 'som-mobile.png');
       if (activeTab === 'tablet') src = src.replace('tablet.png', 'som-tablet.png');
     }
-    return src;
+    return assetUrl(src);
   };
 
   const currentSrc = getSrc();

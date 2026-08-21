@@ -60,6 +60,7 @@ ux-tester-platform/
 
 - Node.js 18+
 - A Google Gemini API key (free — get one at https://aistudio.google.com/apikey)
+- A Google Cloud OAuth Client ID (free — see **Google Sign-In** below)
 
 ### 1. Clone / Navigate
 
@@ -93,7 +94,35 @@ Edit `backend/.env`:
 ```env
 GEMINI_API_KEY=your_actual_api_key_here
 PORT=3001
+GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
+SESSION_SECRET=replace-with-a-long-random-string
+DAILY_ANALYSIS_LIMIT=3
+GLOBAL_DAILY_LIMIT=40
+FRONTEND_URL=http://localhost:5173
 ```
+
+### Google Sign-In (free, including strangers)
+
+Google does not charge per login. Anyone with a Google account can sign in once the OAuth consent screen is **published**.
+
+1. Open [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials)
+2. Create a project (or pick one), then **Create credentials → OAuth client ID → Web application**
+3. Authorized JavaScript origins:
+   - `http://localhost:5173`
+   - your Vercel URL, e.g. `https://your-app.vercel.app`
+4. Copy the Client ID into `GOOGLE_CLIENT_ID` (no client secret needed for this flow)
+5. OAuth consent screen:
+   - User type: **External**
+   - Scopes: `email`, `profile`, `openid` (non-sensitive)
+   - Click **Publish app**. While it stays in **Testing**, only 100 emails you add can sign in. After you publish, any Google account can sign in. Google verification is not required for these basic scopes.
+
+Generate a session secret:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Each Google account gets `DAILY_ANALYSIS_LIMIT` readings per UTC day (default 3). `GLOBAL_DAILY_LIMIT` caps the whole server so Gemini quota cannot be drained.
 
 ### 5. Run
 
@@ -111,7 +140,7 @@ cd frontend
 npm run dev
 ```
 
-Open http://localhost:5173 in your browser.
+Open http://localhost:5173 in your browser. Sign in with Google, then submit a URL.
 
 ### 6. Deploy
 
@@ -120,17 +149,19 @@ Open http://localhost:5173 in your browser.
 cd frontend
 npx vercel
 ```
-Set `VITE_API_URL` environment variable to your backend URL.
+Set `VITE_API_URL` to your backend URL (no trailing slash). Add the Vercel origin to the Google OAuth client's Authorized JavaScript origins.
 
-**Backend → Railway or Render:**
-- Connect your Git repo
-- Set environment variable: `GEMINI_API_KEY`
-- Set build command: `npm run build`
-- Set start command: `npm start`
+**Backend → Render:**
+- Root directory: `backend`
+- Build: `npm install && npx playwright install chromium && npm run build`
+- Start: `npm start`
+- Env: `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `SESSION_SECRET`, `FRONTEND_URL` (your Vercel URL), `NODE_ENV=production`, `DAILY_ANALYSIS_LIMIT`, `GLOBAL_DAILY_LIMIT`
 
 ## API
 
 ### POST /api/analyze
+
+Requires a signed-in Google session cookie.
 
 ```json
 { "url": "https://example.com" }
@@ -166,5 +197,11 @@ React displays structured UX report
 | Variable | Required | Description |
 |---|---|---|
 | `GEMINI_API_KEY` | ✅ | Google Gemini API key |
+| `GOOGLE_CLIENT_ID` | ✅ | Google OAuth Web client ID |
+| `SESSION_SECRET` | ✅ | Random secret used to sign login cookies |
+| `FRONTEND_URL` | Production | Vercel origin allowed by CORS, e.g. `https://your-app.vercel.app` |
+| `DAILY_ANALYSIS_LIMIT` | Optional | Readings per Google account per UTC day (default 3) |
+| `GLOBAL_DAILY_LIMIT` | Optional | Total readings per day for the whole server (default 40) |
 | `PORT` | Optional | Backend port (default: 3001) |
+| `VITE_API_URL` | Production | Frontend: Render backend URL, no trailing slash |
 

@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { startAnalysis } from '../services/api';
 import { PERSONAS } from '../data/personas';
@@ -6,6 +6,7 @@ import SiteNav from '../components/SiteNav';
 import Rise from '../components/Rise';
 import Reveal from '../components/Reveal';
 import HeroTape from '../components/HeroTape';
+import { useAuth } from '../auth/AuthContext';
 
 const EXAMPLE_URLS = [
   'https://stripe.com',
@@ -53,12 +54,21 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const [selectedPersonas, setSelectedPersonas] = useState<string[]>(['elderly_non_technical']);
   const navigate = useNavigate();
+  const { user, quota, dailyLimit, setQuota } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
+    if (!user) {
+      setError('Sign in with Google to run a reading.');
+      return;
+    }
     if (selectedPersonas.length === 0) {
       setError('Select at least one reader.');
+      return;
+    }
+    if (quota && quota.remaining <= 0) {
+      setError(`Daily limit reached (${dailyLimit} readings). Come back tomorrow.`);
       return;
     }
 
@@ -66,7 +76,8 @@ export default function HomePage() {
     setLoading(true);
 
     try {
-      const { jobId } = await startAnalysis(url.trim(), selectedPersonas);
+      const { jobId, quota: nextQuota } = await startAnalysis(url.trim(), selectedPersonas);
+      if (nextQuota) setQuota(nextQuota);
       navigate(`/report/${jobId}`);
     } catch (err) {
       setError((err as Error).message || 'Could not start. Is the backend running?');
@@ -121,7 +132,7 @@ export default function HomePage() {
               <button
                 id="start-analysis-btn"
                 type="submit"
-                disabled={loading || !url.trim()}
+                disabled={loading || !url.trim() || !user || (quota !== null && quota.remaining <= 0)}
                 className="btn-primary"
               >
                 {loading ? (
@@ -149,6 +160,16 @@ export default function HomePage() {
           </form>
 
           {error && <p className="form-error">{error}</p>}
+
+          {!user ? (
+            <p className="auth-hint">
+              Sign in with Google to run a reading. {dailyLimit} per account per day.
+            </p>
+          ) : (
+            <p className="auth-hint">
+              {quota ? `${quota.remaining} of ${quota.limit} readings left today.` : `${dailyLimit} readings per day.`}
+            </p>
+          )}
 
           <div className="persona-picks">
             {PERSONAS.map((p) => {

@@ -2,18 +2,34 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import { analyzeRouter } from './routes/analyze';
+import { authRouter } from './routes/auth';
+import { isAuthConfigured } from './auth/google';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL?.replace(/\/$/, ''),
+].filter((origin): origin is string => Boolean(origin));
+
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(null, false);
+  },
   credentials: true,
 }));
+app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -22,6 +38,7 @@ const screenshotsDir = path.join(__dirname, '..', 'screenshots');
 app.use('/screenshots', express.static(screenshotsDir));
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/analyze', analyzeRouter);
 
 // Health check
@@ -43,7 +60,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 app.listen(PORT, () => {
   console.log(`\n🚀 UX Tester Platform Backend running on http://localhost:${PORT}`);
   console.log(`📸 Screenshots served at http://localhost:${PORT}/screenshots`);
-  console.log(`🔑 Gemini API Key: ${process.env.GEMINI_API_KEY ? '✅ Loaded' : '❌ Missing!'}\n`);
+  console.log(`🔑 Gemini API Key: ${process.env.GEMINI_API_KEY ? '✅ Loaded' : '❌ Missing!'}`);
+  console.log(`🔐 Google auth: ${isAuthConfigured() ? '✅ Configured' : '❌ Missing GOOGLE_CLIENT_ID / SESSION_SECRET'}\n`);
 });
 
 export default app;
