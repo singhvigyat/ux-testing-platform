@@ -5,6 +5,7 @@ import { PERSONAS } from '../data/personas';
 import SiteNav from '../components/SiteNav';
 import Rise from '../components/Rise';
 import Reveal from '../components/Reveal';
+import HeroTape from '../components/HeroTape';
 
 const EXAMPLE_URLS = [
   'https://stripe.com',
@@ -184,7 +185,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section-block">
+      <HeroTape />
+
+      <section className="section-block is-follow">
         <div className="section-head">
           <span className="kicker">Notes</span>
           <h2>What gets read</h2>

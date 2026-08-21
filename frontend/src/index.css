@@ -38,6 +38,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
@@ -236,7 +237,7 @@ body::after {
   grid-template-columns: 1.15fr 0.85fr;
   gap: 72px 64px;
   align-items: start;
-  padding-bottom: 72px;
+  padding-bottom: 56px;
 }
 
 .hero-title {
@@ -264,6 +265,84 @@ body::after {
 
 .hero-aside {
   padding-bottom: 8px;
+}
+
+/* Infinite reader tape */
+.hero-tape {
+  position: relative;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
+  border-top: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 7%,
+    #000 93%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 7%,
+    #000 93%,
+    transparent 100%
+  );
+}
+
+.hero-tape-track {
+  display: flex;
+  width: max-content;
+  animation: tape-scroll 48s linear infinite;
+}
+
+.hero-tape:hover .hero-tape-track {
+  animation-play-state: paused;
+}
+
+.hero-tape-set {
+  display: flex;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hero-tape-item {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 18px 56px 18px 0;
+  white-space: nowrap;
+}
+
+.tape-name {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.tape-dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin: 0 2px 0.15em;
+  background: var(--color-sienna);
+  flex-shrink: 0;
+}
+
+.tape-note {
+  font-size: 0.8125rem;
+  color: var(--color-ink-3);
+}
+
+@keyframes tape-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 /* Line rise */
@@ -557,6 +636,11 @@ body::after {
   padding: 72px 0 0;
   border-top: 1px solid var(--color-line);
   margin-top: 8px;
+}
+
+.section-block.is-follow {
+  border-top: none;
+  margin-top: 0;
 }
 
 /* Features */
@@ -1361,6 +1445,16 @@ body::after {
     padding-bottom: 48px;
   }
 
+  .hero-tape {
+    width: 100%;
+    left: auto;
+    margin-left: 0;
+  }
+
+  .hero-tape-item {
+    padding-right: 40px;
+  }
+
   .feature-grid,
   .reading-grid,
   .report-lists,
@@ -1442,7 +1536,8 @@ body::after {
   .spin,
   .tab-btn.active::after,
   .lightbox,
-  .lightbox img {
+  .lightbox img,
+  .hero-tape-track {
     animation: none !important;
   }
 
